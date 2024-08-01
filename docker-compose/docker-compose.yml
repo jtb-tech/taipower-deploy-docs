@@ -1,0 +1,74 @@
+version: '3.8'
+
+networks:
+  app-network:
+    driver: bridge
+
+services:
+  jtbtech-labeling-api:
+    image: yillkid/jtbtech-labeling-api:1.0.1
+    container_name: jtbtech-labeling-api
+    ports:
+      - "8081:8081"
+    environment:
+      - LABEL_STUDIO_API_ENDPOINT=https://118.163.118.14:8080
+      - LABEL_STUDIO_API_KEY=0dc18dc5db6644df7d54f3b0ced73b9f63bb9c0c
+      - LABEL_STUDIO_ML_BACKEND=https://118.163.118.14:9090
+      - API_ENDPOINT_JWT=https://118.163.118.14/taipower-safetyai/api/decodeUser
+      - API_TOKEN_JWT=0dc18dc5db6644df7d54f3b0ced73b9f63bb9c0c
+    networks:
+      - app-network
+
+  jtbtech-ml-labeling-frontend:
+    image: yillkid/jtbtech-ml-labeling-frontend:1.0.1
+    container_name: jtbtech-ml-labeling-frontend
+    ports:
+      - "3001:3001"
+    environment:
+      - REACT_APP_BASE_URL_POSTFIX=/taipower-autolabel
+      - REACT_APP_LAYER2_ENDPOINT=https://118.163.118.14:8081
+      - REACT_APP_API_ENDPOINT=https://118.163.118.14:8081
+      - REACT_APP_LABEL_STUDIO_HOST=https://118.163.118.14:8080
+      - REACT_APP_API_TOKEN=0dc18dc5db6644df7d54f3b0ced73b9f63bb9c0c
+      - REACT_APP_FORBIDDEN_API_ENDPOINT=https://118.163.118.14:35387
+      - REACT_APP_ENDPOINT_MODEL_MANAGER=https://118.163.118.14:35387
+      - REACT_APP_ENDPOINT_TRAINER=https://118.163.118.14:35391
+    networks:
+      - app-network
+
+  jtbtech-label-studio:
+    image: yillkid/jtbtech-label-studio:1.0.2
+    container_name: jtbtech-label-studio
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  segment_anything_model:
+    container_name: segment_anything_model
+    image: heartexlabs/label-studio-ml-backend:sam-master
+    build:
+      context: .
+      shm_size: '4gb'
+      args:
+        TEST_ENV: ${TEST_ENV}
+    deploy:
+      resources:
+        limits:
+            memory: 8G
+        reservations:
+            memory: 4G
+    environment:
+      - BASIC_AUTH_USER=
+      - BASIC_AUTH_PASS=
+      - SAM_CHOICE=MobileSAM
+      - LOG_LEVEL=DEBUG
+      - WORKERS=1
+      - THREADS=8
+      - MODEL_DIR=/data/models
+      - LABEL_STUDIO_HOST=https://118.163.118.14:8080
+      - LABEL_STUDIO_ACCESS_TOKEN=0dc18dc5db6644df7d54f3b0ced73b9f63bb9c0c
+    ports:
+      - "9090:9090"
+    networks:
+      - app-network
